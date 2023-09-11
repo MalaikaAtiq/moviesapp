@@ -16,7 +16,7 @@ export const isAuthenticated = (req,res,next) =>{
 export const verifyRefreshToken = (user_id, refreshToken) =>{
   try{
     const decoded_token = jwt.verify(refreshToken, process.env.REFRESH_SECRET)
-    return decoded_token.user._id === user_id 
+    return decoded_token.user_id === user_id 
   }catch(err){
     return false
   }

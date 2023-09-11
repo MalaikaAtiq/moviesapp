@@ -2,6 +2,8 @@ import userModel from "../models/userModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { verifyRefreshToken } from "../auth/auth.js"
+import passport from '../auth/passport.js'
+import { OAuth2Client } from 'google-auth-library'
 
 export const getUser = async (req, res) => {
   try {
@@ -55,8 +57,8 @@ export const login = async (req, res) => {
     if (user) {
       const isPasswordValid = await bcrypt.compare(password, user.password)
       if (isPasswordValid) {
-        const accessToken = jwt.sign({ user }, process.env.ACCESS_SECRET, { expiresIn: "10m" })
-        const refreshToken = jwt.sign({ user }, process.env.REFRESH_SECRET, { expiresIn: "15m" })
+        const accessToken = jwt.sign({ user_id: user._id }, process.env.ACCESS_SECRET, { expiresIn: "10m" })
+        const refreshToken = jwt.sign({ user_id: user._id }, process.env.REFRESH_SECRET, { expiresIn: "15m" })
         res.status(200).json({ accessToken, refreshToken })
       }
       else {
@@ -79,7 +81,7 @@ export const refreshToken = async (req, res) => {
 
     if (verifyRefreshToken(user_id, refreshToken)) {
       const user = await userModel.findById(user_id)
-      const accessToken = jwt.sign({ user }, process.env.ACCESS_SECRET, { expiresIn: "10m" })
+      const accessToken = jwt.sign({ user_id: user._id }, process.env.ACCESS_SECRET, { expiresIn: "10m" })
       return res.json({ accessToken })
     }
     else {
@@ -87,5 +89,38 @@ export const refreshToken = async (req, res) => {
     }
   } catch (err) {
     return res.status(500).json({ msg: err.message })
+  }
+}
+
+export const googleSignin = async (req, res) =>{
+  try{  
+    //console.log("clientid: " + req.body.clientId)
+    //console.log("credential: " + req.body.credential)
+    const {clientId, credential} = req.body
+    const client = new OAuth2Client(clientId)
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: clientId,
+  })
+  const payload = ticket.getPayload();
+  console.log(payload)
+
+  let user = await userModel.findOne({email: payload.email})
+  console.log(user)
+  if(!user)
+    user = await userModel.create({ email: payload.email })
+  const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
+  const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
+  res.status(200).json({ accessToken, refreshToken })
+  }catch(err){
+    return res.status(500).json({ msg: err.message})
+  }
+}
+
+export const githubSignin = (req,res)=>{
+  try{
+
+  }catch(err){
+    return res.status(500).json({ msg: err.message})
   }
 }
