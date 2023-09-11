@@ -2,7 +2,6 @@ import userModel from "../models/userModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { verifyRefreshToken } from "../auth/auth.js"
-import passport from '../auth/passport.js'
 import { OAuth2Client } from 'google-auth-library'
 
 export const getUser = async (req, res) => {
@@ -59,7 +58,7 @@ export const login = async (req, res) => {
       if (isPasswordValid) {
         const accessToken = jwt.sign({ user_id: user._id }, process.env.ACCESS_SECRET, { expiresIn: "10m" })
         const refreshToken = jwt.sign({ user_id: user._id }, process.env.REFRESH_SECRET, { expiresIn: "15m" })
-        res.status(200).json({ accessToken, refreshToken })
+        res.status(200).json({ accessToken, refreshToken, user })
       }
       else {
         res.json({ msg: "Incorrect password." })
@@ -113,7 +112,7 @@ export const googleSignin = async (req, res) =>{
   const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
   res.status(200).json({ accessToken, refreshToken })
   }catch(err){
-    return res.status(500).json({ msg: err.message})
+    return res.status(500).json({ msg: err.message })
   }
 }
 
