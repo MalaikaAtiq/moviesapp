@@ -2,7 +2,6 @@ import userModel from "../models/userModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { verifyRefreshToken } from "../auth/auth.js"
-import { OAuth2Client } from 'google-auth-library'
 
 export const getUser = async (req, res) => {
   try {
@@ -93,24 +92,20 @@ export const refreshToken = async (req, res) => {
 
 export const googleSignin = async (req, res) =>{
   try{  
-    //console.log("clientid: " + req.body.clientId)
-    //console.log("credential: " + req.body.credential)
-    const {clientId, credential} = req.body
-    const client = new OAuth2Client(clientId)
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: clientId,
-  })
-  const payload = ticket.getPayload();
-  console.log(payload)
-
-  let user = await userModel.findOne({email: payload.email})
-  console.log(user)
-  if(!user)
-    user = await userModel.create({ email: payload.email })
-  const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
-  const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
-  res.status(200).json({ accessToken, refreshToken })
+   const access_token = req.body.accessToken
+   const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      }
+    })
+    const userData = await response.json()
+    let user = await userModel.findOne({email: userData.email})
+    console.log(user)
+    if(!user)
+      user = await userModel.create({ email: userData.email, name: userData.name })
+    const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
+    const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
+    res.status(200).json({ accessToken, refreshToken, user })
   }catch(err){
     return res.status(500).json({ msg: err.message })
   }

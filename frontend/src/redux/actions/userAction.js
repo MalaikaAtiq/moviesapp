@@ -1,7 +1,7 @@
-export const getuser = (res) =>{
+export const setuser = (user) =>{
   return{
-    type: 'GET_USER', 
-    payload: {user: res.data.user}
+    type: 'SET_USER', 
+    payload: {user: user}
   }
 }
 

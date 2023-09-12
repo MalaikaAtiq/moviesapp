@@ -6,12 +6,13 @@ import screens from './assets/images/login.png'
 import logo from './assets/images/custom-1.png'
 import google from './assets/images/google-icon.svg'
 import github from './assets/images/GitHub-Mark.png'
-import { loggedIn } from './redux/actions/userAction'
+import { loggedIn, setuser } from './redux/actions/userAction'
 
 //module imports 
 import axios from 'axios'
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
+import { useGoogleLogin } from '@react-oauth/google'
 
 
 function App (){
@@ -24,14 +25,29 @@ function App (){
     e.preventDefault();
     try{  
       const response = await axios.post('http://localhost:5000/user/login', {email: email, password: password})
-      console.log(response.data)
+      console.log(response.data.user)
       localStorage.setItem('accessToken', response.data.accessToken)
+      dispatch(setuser(response.data.user))
       dispatch(loggedIn())
     }catch(err){
       console.log(err.message)
     }
     
   }
+
+  const getAccessToken = async(codeResponse) =>{
+    console.log(codeResponse)
+    const response = await axios.post('http://localhost:5000/user/auth/google', {accessToken: codeResponse.access_token})
+    console.log("New access token: ", response.data.accessToken)
+    console.log(response.data.user)
+    localStorage.setItem('accessToken', response.data.accessToken)
+      dispatch(setuser(response.data.user))
+      dispatch(loggedIn())
+  }
+
+  const signInWithGoogle = useGoogleLogin({
+    onSuccess: codeResponse => getAccessToken(codeResponse)
+  })
 
   return (
     <div className="App">
@@ -55,7 +71,7 @@ function App (){
           <h1> Sign In</h1>
           <p> Your Social Campaigns </p>
           <div className="social-login"> 
-          <button className="google"> <img src={google} alt=""/> Sign in with Google </button>
+          <button className="google" onClick={() => signInWithGoogle()}> <img src={google} alt=""/> Sign in with Google </button>
           <button className="github"> <img src={github} alt=""/> Sign in with Github </button>
           </div>
 
@@ -73,11 +89,6 @@ function App (){
           <p className="signup"> Not a member yet? <a href="/"> Sign up</a></p>
 
         </div>
-          
-
-
-
-
       </div>
     </div>
   );

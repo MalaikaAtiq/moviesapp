@@ -1,6 +1,7 @@
 //module imports
 import express from "express"
 import mongoose from "mongoose"
+import morgan from "morgan"
 import 'dotenv/config'
 import cors from "cors"
 
@@ -16,6 +17,7 @@ mongoose.connect(process.env.DB_URL, { useNewUrlParser: true, useUnifiedTopology
 
 app.use(express.json())
 app.use(cors())
+app.use(morgan('dev'))
 app.use("/user", router)
 
 app.listen(port, () => {
