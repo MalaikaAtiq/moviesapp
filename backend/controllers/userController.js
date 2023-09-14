@@ -1,6 +1,7 @@
 import userModel from "../models/userModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import queryString from 'query-string'
 import { verifyRefreshToken } from "../auth/auth.js"
 
 export const getUser = async (req, res) => {
@@ -60,11 +61,11 @@ export const login = async (req, res) => {
         res.status(200).json({ accessToken, refreshToken, user })
       }
       else {
-        res.json({ msg: "Incorrect password." })
+        res.status(500).json({ msg: "The password you entered is incorrect. Try again" })
       }
     }
     else {
-      res.json({ msg: "Incorrect email." })
+      res.status(500).json({ msg: "The email you entered is incorrect. Try again." })
     }
 
   } catch (err) {
@@ -103,18 +104,69 @@ export const googleSignin = async (req, res) =>{
     console.log(user)
     if(!user)
       user = await userModel.create({ email: userData.email, name: userData.name })
-    const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
-    const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
-    res.status(200).json({ accessToken, refreshToken, user })
+    if(user.password){
+      res.status(500).json({msg: "There is already an account associated with this email."})
+    }
+    else{
+      const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
+      const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
+      res.status(200).json({ accessToken, refreshToken, user })
+    }
   }catch(err){
     return res.status(500).json({ msg: err.message })
   }
 }
 
-export const githubSignin = (req,res)=>{
+export const githubSignin = async(req,res)=>{
   try{
-
+    console.log("I AM REQ.BODY.CODE: " +req.body.code)
+    await fetch(`https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_CLIENT_ID}&client_secret=${process.env.GITHUB_CLIENT_SECRET}&code=${req.body.code}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }).then((response) =>  response.text() )
+    .then(async(paramsString) => {
+      console.log(paramsString)
+      let params = new URLSearchParams(paramsString);
+      const access_token = params.get("access_token");
+      console.log(access_token)
+      
+      await fetch('https://api.github.com/user', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${access_token}`
+      }
+    }).then(async(responseUser) => {
+      // console.log(await response.json())
+      const userData = await responseUser.json()
+      console.log(userData)
+      await fetch('https://api.github.com/user/emails', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'applications/json',
+          'Authorization': `token ${access_token}`
+        }
+      }).then(async(responseUserEmail)=>{
+        const userEmail = await responseUserEmail.json()
+        let user = await userModel.findOne({email: userEmail[0].email})
+        if(!user)
+          user = await userModel.create({ email: response[0].email, name: userData.name })
+        if(user.password){
+          res.status(500).json({msg: "There is already an account associated with this email."})
+        }
+        else{
+          const accessToken = jwt.sign({ user_id: user._id}, process.env.ACCESS_SECRET, {expiresIn: "10m"})
+          const refreshToken = jwt.sign({ user_id: user._id}, process.env.REFRESH_SECRET, { expiresIn: "15m" })
+          res.status(200).json({ accessToken, refreshToken, user })
+        }
+      })
+    })
+    })
+    
   }catch(err){
+    console.log(err.message)
     return res.status(500).json({ msg: err.message})
   }
 }

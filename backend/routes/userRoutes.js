@@ -12,6 +12,6 @@ router.post('/signup', userController.signup)
 router.get('/refreshtoken/:uid', userController.refreshToken)
 
 router.post('/auth/google', userController.googleSignin)
-router.get('/auth/github/', userController.githubSignin)
+router.post('/auth/github/', userController.githubSignin)
 router.get('/auth/google/callback')
 export default router

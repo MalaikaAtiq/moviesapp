@@ -71,6 +71,10 @@ p{
   border-radius: 5px;
 }
 
+.incorrect-password{
+  color: red !important;
+}
+
 .forgotpassword{
   text-align: right;
 }

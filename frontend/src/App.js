@@ -10,16 +10,44 @@ import { loggedIn, setuser } from './redux/actions/userAction'
 
 //module imports 
 import axios from 'axios'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { useGoogleLogin } from '@react-oauth/google'
+import { useNavigate } from 'react-router-dom'
 
 
 function App (){
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-
+  const [errorMessage, setErrorMessage] = useState('')
+  const navigate = useNavigate()
   const dispatch = useDispatch()
+
+  const getGithubUser = async(code) =>{
+    try{
+      const response = await axios.post('http://localhost:5000/user/auth/github', { code: code })
+          console.log(response)
+          localStorage.setItem('accessToken', response.data.accessToken)
+          dispatch(setuser(response.data.user))
+          dispatch(loggedIn())
+          navigate('/dashboard')
+    }catch(err){
+      console.log(err.message)
+      setErrorMessage(err.response.data.msg)
+    }
+  }
+
+  useEffect(()=>{
+      const urlParams = new URLSearchParams(new URL(window.location.href).search)
+      const code = urlParams.get("code")
+      console.log(code) 
+
+      if(code){
+        getGithubUser(code)
+      }
+  },[])
+
+
 
   const login = async(e) =>{
     e.preventDefault();
@@ -29,25 +57,44 @@ function App (){
       localStorage.setItem('accessToken', response.data.accessToken)
       dispatch(setuser(response.data.user))
       dispatch(loggedIn())
+      navigate('/dashboard')
     }catch(err){
       console.log(err.message)
+      setErrorMessage(err.response.data.msg)
     }
     
   }
 
-  const getAccessToken = async(codeResponse) =>{
+  const getGoogleUser = async(codeResponse) =>{
+  try{
     console.log(codeResponse)
     const response = await axios.post('http://localhost:5000/user/auth/google', {accessToken: codeResponse.access_token})
     console.log("New access token: ", response.data.accessToken)
     console.log(response.data.user)
     localStorage.setItem('accessToken', response.data.accessToken)
-      dispatch(setuser(response.data.user))
-      dispatch(loggedIn())
+    dispatch(setuser(response.data.user))
+    dispatch(loggedIn())
+    navigate('/dashboard')
+  }catch(err){
+    console.log(err.response.data.msg)
+    setErrorMessage(err.response.data.msg)
   }
+}
+
+
 
   const signInWithGoogle = useGoogleLogin({
-    onSuccess: codeResponse => getAccessToken(codeResponse)
+    onSuccess: codeResponse => getGoogleUser(codeResponse),
+    onError: ()=> console.log("Login Failed")
   })
+
+  const signInWithGithub = async() =>{
+    try{
+      window.location.href = `https://github.com/login/oauth/authorize?client_id=1fa1bb65f74d50f74670&redirect_uri=http://localhost:3000&scope=user,user:email`;
+    }catch(err){
+      console.log(err.message)
+    }    
+  }
 
   return (
     <div className="App">
@@ -72,12 +119,13 @@ function App (){
           <p> Your Social Campaigns </p>
           <div className="social-login"> 
           <button className="google" onClick={() => signInWithGoogle()}> <img src={google} alt=""/> Sign in with Google </button>
-          <button className="github"> <img src={github} alt=""/> Sign in with Github </button>
+          <button className="github" onClick={() => signInWithGithub()}> <img src={github} alt=""/> Sign in with Github </button>
           </div>
 
           <p> or with email </p>
           <form>
             <div>
+            <p className='incorrect-password'> {errorMessage} </p>
             <input type="text" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)}/>
             </div>
             <div>

@@ -6,17 +6,22 @@ import { Provider } from 'react-redux';
 import store from './redux/store';
 import reportWebVitals from './reportWebVitals';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { RouterProvider } from 'react-router-dom';
+import router from './router';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <Provider store={store}>
+  <Provider store={store}>
+    
   <GoogleOAuthProvider clientId="403710484746-bnpe1nuegc7skc8amlm8pouiia82d7oc.apps.googleusercontent.com">
+  <RouterProvider router={router}>
     <App />
+    </RouterProvider>
   </GoogleOAuthProvider>
+  
   </Provider>
-  </React.StrictMode>
+
 );
 
 // If you want to start measuring performance in your app, pass a function
