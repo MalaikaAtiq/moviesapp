@@ -1,0 +1,22 @@
+.default-dashboard{
+  margin-left: 350px;
+}
+.movies-table {
+  border-collapse: collapse;
+}
+.table-container{
+width: 90%;
+padding: 30px 30px;
+border: 1px solid #F1F1F2; 
+box-shadow: 0px 4px 12px 0px rgba(0, 0, 0, 0.03);
+border-radius: 25px;
+overflow-x: scroll;
+}
+.movies-table th{
+  border-bottom: 1px solid #F1F1F2;
+}
+.movies-table th, td {
+    /* border: 1px solid black; */
+    padding: 25px 20px;
+    text-align: left;
+}
